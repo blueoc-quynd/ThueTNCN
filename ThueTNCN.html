@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>Tính thuế TNCN Việt Nam</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        label { display: block; margin-top: 10px; }
+        input[type="text"], input[type="number"] { width: 250px; padding: 5px; }
+        .result { margin-top: 20px; background: #f4f4f4; padding: 15px; border-radius: 8px; }
+        .bac { margin-left: 20px; }
+    </style>
+</head>
+<body>
+    <h2>Tính thuế thu nhập cá nhân (TNCN) Việt Nam</h2>
+    <form id="taxForm" onsubmit="return false;">
+        <label>Thu nhập hàng tháng (VND):
+            <input type="text" id="thuNhap" placeholder="VD: 15000000+2000000">
+        </label>
+        <label>Số người phụ thuộc:
+            <input type="text" id="phuThuoc" value="0">
+        </label>
+        <label>Tiền bảo hiểm (VND):
+            <input type="text" id="baoHiem" value="0">
+        </label>
+        <label>
+            <input type="checkbox" id="giamTruBanThan" checked>
+            Giảm trừ bản thân (11.000.000 VND)
+        </label>
+        <button onclick="tinhThue()">Tính thuế</button>
+    </form>
+    <div class="result" id="result"></div>
+
+    <script>
+    function safeEval(expr) {
+        // Chỉ cho phép số, toán tử cơ bản, dấu ngoặc, khoảng trắng
+        if (/^[\d+\-*/().\s]+$/.test(expr)) {
+            try {
+                // eslint-disable-next-line no-eval
+                return eval(expr);
+            } catch {
+                throw "Biểu thức không hợp lệ!";
+            }
+        }
+        throw "Biểu thức không hợp lệ!";
+    }
+
+    function tinhThueTNCN(thuNhap, giamTruBanThan, soNguoiPhuThuoc, baoHiem) {
+        const giamTruBanThanVal = giamTruBanThan ? 11000000 : 0;
+        const giamTruPhuThuoc = soNguoiPhuThuoc * 4400000;
+        const giamTruBaoHiem = baoHiem;
+
+        const thuNhapChiuThue = thuNhap - giamTruBanThanVal - giamTruPhuThuoc - giamTruBaoHiem;
+        if (thuNhapChiuThue <= 0) {
+            return {
+                tongThue: 0,
+                chiTietBac: [],
+                soThuePhaiNop: 0,
+                thuNhapConLai: thuNhap
+            };
+        }
+
+        const bacThue = [
+            [5000000, 0.05],
+            [10000000, 0.10],
+            [18000000, 0.15],
+            [32000000, 0.20],
+            [52000000, 0.25],
+            [80000000, 0.30],
+            [Infinity, 0.35]
+        ];
+
+        let thue = 0;
+        let thuNhapConLai = thuNhapChiuThue;
+        let mucDuoi = 0;
+        let chiTietBac = [];
+
+        for (let i = 0; i < bacThue.length; i++) {
+            const [mucTren, tyLe] = bacThue[i];
+            if (thuNhapConLai > 0) {
+                const mucTinhThue = Math.min(thuNhapConLai, mucTren - mucDuoi);
+                const thueBac = mucTinhThue * tyLe;
+                chiTietBac.push({
+                    mucDuoi: mucDuoi + 1,
+                    mucTren: mucTren,
+                    tyLe: tyLe,
+                    thuNhapBac: mucTinhThue,
+                    thueBac: Math.round(thueBac)
+                });
+                thue += thueBac;
+                thuNhapConLai -= mucTinhThue;
+                mucDuoi = mucTren;
+            } else {
+                break;
+            }
+        }
+
+        const soThuePhaiNop = Math.round(thue);
+        const thuNhapConLaiSauThue = thuNhap - soThuePhaiNop;
+
+        return {
+            tongThue: soThuePhaiNop,
+            chiTietBac: chiTietBac,
+            soThuePhaiNop: soThuePhaiNop,
+            thuNhapConLai: thuNhapConLaiSauThue
+        };
+    }
+
+    function formatVND(num) {
+        return num.toLocaleString('vi-VN');
+    }
+
+    function tinhThue() {
+        const resultDiv = document.getElementById('result');
+        try {
+            const thuNhap = safeEval(document.getElementById('thuNhap').value);
+            const baoHiem = safeEval(document.getElementById('baoHiem').value);
+            const soPhuThuoc = safeEval(document.getElementById('phuThuoc').value);
+            const giamTruBanThan = document.getElementById('giamTruBanThan').checked;
+
+            const ketQua = tinhThueTNCN(
+                thuNhap,
+                giamTruBanThan,
+                Number(soPhuThuoc),
+                baoHiem
+            );
+
+            let msg = `<b>Tổng số thuế theo lũy tiến:</b> ${formatVND(ketQua.tongThue)} VND<br>`;
+            msg += `<b>Thuế thành phần theo từng bậc:</b><br>`;
+            ketQua.chiTietBac.forEach((bac, idx) => {
+                msg += `<div class="bac">Bậc ${idx + 1}: ${formatVND(bac.mucDuoi)} - ${formatVND(bac.mucTren)} VND, `
+                    + `Thu nhập tính thuế: ${formatVND(bac.thuNhapBac)} VND, `
+                    + `Thuế: ${formatVND(bac.thueBac)} VND</div>`;
+            });
+            msg += `<b>Số thuế phải nộp:</b> ${formatVND(ketQua.soThuePhaiNop)} VND<br>`;
+            msg += `<b>Số tiền còn lại sau thuế:</b> ${formatVND(ketQua.thuNhapConLai)} VND`;
+            resultDiv.innerHTML = msg;
+        } catch (e) {
+            resultDiv.innerHTML = `<span style="color:red;">Lỗi: Vui lòng nhập đúng định dạng số hoặc phép tính!</span>`;
+        }
+    }
+    </script>
+</body>
+</html>
