@@ -23,6 +23,9 @@
         <label>Tiền bảo hiểm (VND):
             <input type="text" id="baoHiem" value="0">
         </label>
+        <label>Tiền không tính thuế (OT, hỗ trợ nhà ở...) (VND):
+            <input type="text" id="khongTinhThue" value="0">
+        </label>
         <label>
             <input type="checkbox" id="giamTruBanThan" checked>
             Giảm trừ bản thân (11.000.000 VND)
@@ -45,12 +48,13 @@
         throw "Biểu thức không hợp lệ!";
     }
 
-    function tinhThueTNCN(thuNhap, giamTruBanThan, soNguoiPhuThuoc, baoHiem) {
+    function tinhThueTNCN(thuNhap, giamTruBanThan, soNguoiPhuThuoc, baoHiem, khongTinhThue) {
         const giamTruBanThanVal = giamTruBanThan ? 11000000 : 0;
         const giamTruPhuThuoc = soNguoiPhuThuoc * 4400000;
         const giamTruBaoHiem = baoHiem;
+        const giamTruKhongTinhThue = khongTinhThue;
 
-        const thuNhapChiuThue = thuNhap - giamTruBanThanVal - giamTruPhuThuoc - giamTruBaoHiem;
+        const thuNhapChiuThue = thuNhap - giamTruBanThanVal - giamTruPhuThuoc - giamTruBaoHiem - giamTruKhongTinhThue;
         if (thuNhapChiuThue <= 0) {
             return {
                 tongThue: 0,
@@ -115,6 +119,7 @@
         try {
             const thuNhap = safeEval(document.getElementById('thuNhap').value);
             const baoHiem = safeEval(document.getElementById('baoHiem').value);
+            const khongTinhThue = safeEval(document.getElementById('khongTinhThue').value);
             const soPhuThuoc = safeEval(document.getElementById('phuThuoc').value);
             const giamTruBanThan = document.getElementById('giamTruBanThan').checked;
 
@@ -122,7 +127,8 @@
                 thuNhap,
                 giamTruBanThan,
                 Number(soPhuThuoc),
-                baoHiem
+                baoHiem,
+                khongTinhThue
             );
 
             let msg = `<b>Tổng số thuế theo lũy tiến:</b> ${formatVND(ketQua.tongThue)} VND<br>`;
