@@ -44,13 +44,13 @@ function safeEval(expr) {
     throw "Biểu thức không hợp lệ!";
 }
 
-function tinhThueTNCN(thuNhap, giamTruBanThan, soNguoiPhuThuoc, baoHiem, khongTinhThue) {
-    const giamTruBanThanVal = giamTruBanThan ? 11000000 : 0;
-    const giamTruPhuThuoc = soNguoiPhuThuoc * 4400000;
+function tinhThueTNCN(thuNhap, giamTruBanThan, giamTruPhuThuoc, soNguoiPhuThuoc, baoHiem, khongTinhThue) {
+    const giamTruBanThanVal = giamTruBanThan;
+    const giamTruPhuThuocTotal = soNguoiPhuThuoc * giamTruPhuThuoc;
     const giamTruBaoHiem = baoHiem;
     const giamTruKhongTinhThue = khongTinhThue;
 
-    const thuNhapChiuThue = thuNhap - giamTruBanThanVal - giamTruPhuThuoc - giamTruBaoHiem - giamTruKhongTinhThue;
+    const thuNhapChiuThue = thuNhap - giamTruBanThanVal - giamTruPhuThuocTotal - giamTruBaoHiem - giamTruKhongTinhThue;
     if (thuNhapChiuThue <= 0) {
         return {
             tongThue: 0,
@@ -60,7 +60,9 @@ function tinhThueTNCN(thuNhap, giamTruBanThan, soNguoiPhuThuoc, baoHiem, khongTi
             thongTinGiamTru: {
                 thuNhapGoc: thuNhap,
                 giamTruBanThan: giamTruBanThanVal,
-                giamTruPhuThuoc: giamTruPhuThuoc,
+                giamTruPhuThuoc: giamTruPhuThuocTotal,
+                giamTruPhuThuocDonGia: giamTruPhuThuoc,
+                soNguoiPhuThuoc: soNguoiPhuThuoc,
                 giamTruBaoHiem: giamTruBaoHiem,
                 giamTruKhongTinhThue: giamTruKhongTinhThue,
                 thuNhapChiuThue: thuNhapChiuThue
@@ -114,7 +116,9 @@ function tinhThueTNCN(thuNhap, giamTruBanThan, soNguoiPhuThuoc, baoHiem, khongTi
         thongTinGiamTru: {
             thuNhapGoc: thuNhap,
             giamTruBanThan: giamTruBanThanVal,
-            giamTruPhuThuoc: giamTruPhuThuoc,
+            giamTruPhuThuoc: giamTruPhuThuocTotal,
+            giamTruPhuThuocDonGia: giamTruPhuThuoc,
+            soNguoiPhuThuoc: soNguoiPhuThuoc,
             giamTruBaoHiem: giamTruBaoHiem,
             giamTruKhongTinhThue: giamTruKhongTinhThue,
             thuNhapChiuThue: thuNhapChiuThue
@@ -133,11 +137,13 @@ function tinhThue() {
         const baoHiem = safeEval(document.getElementById('baoHiem').value);
         const khongTinhThue = safeEval(document.getElementById('khongTinhThue').value);
         const soPhuThuoc = safeEval(document.getElementById('phuThuoc').value);
-        const giamTruBanThan = document.getElementById('giamTruBanThan').checked;
+        const giamTruBanThan = safeEval(document.getElementById('giamTruBanThan').value);
+        const giamTruPhuThuoc = safeEval(document.getElementById('giamTruPhuThuoc').value);
 
         const ketQua = tinhThueTNCN(
             thuNhap,
             giamTruBanThan,
+            giamTruPhuThuoc,
             Number(soPhuThuoc),
             baoHiem,
             khongTinhThue
@@ -148,7 +154,11 @@ function tinhThue() {
         msg += `<div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 8px; margin-bottom: 15px;">`;
         msg += `Thu nhập gốc: <b>${formatVND(ketQua.thongTinGiamTru.thuNhapGoc)} VND</b><br>`;
         msg += `Giảm trừ bản thân: <b>${formatVND(ketQua.thongTinGiamTru.giamTruBanThan)} VND</b><br>`;
-        msg += `Giảm trừ người phụ thuộc: <b>${formatVND(ketQua.thongTinGiamTru.giamTruPhuThuoc)} VND</b><br>`;
+        if (ketQua.thongTinGiamTru.soNguoiPhuThuoc > 0) {
+            msg += `Giảm trừ người phụ thuộc: <b>${ketQua.thongTinGiamTru.soNguoiPhuThuoc} người × ${formatVND(ketQua.thongTinGiamTru.giamTruPhuThuocDonGia)} = ${formatVND(ketQua.thongTinGiamTru.giamTruPhuThuoc)} VND</b><br>`;
+        } else {
+            msg += `Giảm trừ người phụ thuộc: <b>${formatVND(ketQua.thongTinGiamTru.giamTruPhuThuoc)} VND</b><br>`;
+        }
         msg += `Giảm trừ bảo hiểm: <b>${formatVND(ketQua.thongTinGiamTru.giamTruBaoHiem)} VND</b><br>`;
         msg += `Giảm trừ khác: <b>${formatVND(ketQua.thongTinGiamTru.giamTruKhongTinhThue)} VND</b><br>`;
         msg += `<hr style="border: 1px solid rgba(255,255,255,0.3); margin: 10px 0;">`;
@@ -184,7 +194,7 @@ function tinhThue() {
 
 // Auto-format các input khi trang load
 window.addEventListener('DOMContentLoaded', function() {
-    ['thuNhap', 'baoHiem', 'khongTinhThue'].forEach(id => {
+    ['thuNhap', 'baoHiem', 'khongTinhThue', 'giamTruBanThan', 'giamTruPhuThuoc'].forEach(id => {
         const input = document.getElementById(id);
         if (input.value && input.value !== '0') {
             formatNumberInput(input);
